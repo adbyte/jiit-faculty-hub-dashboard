@@ -1,14 +1,23 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Users, Clock, CheckCircle, XCircle, Play, Square } from 'lucide-react';
+import { Camera, Users, Clock, CheckCircle, XCircle, Play, Square, UserPlus } from 'lucide-react';
+import { facialRecognitionService, AttendanceRecord } from '@/services/facialRecognitionService';
+import StudentRegistrationDialog from '@/components/StudentRegistrationDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const FacialAttendance = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState('');
+  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [currentDetected, setCurrentDetected] = useState('');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const recognitionInterval = useRef<NodeJS.Timeout>();
+  const { toast } = useToast();
 
   const courses = [
     { id: 'CSE101', name: 'Computer Fundamentals', students: 42 },
@@ -17,35 +26,92 @@ const FacialAttendance = () => {
     { id: 'CSE401', name: 'Software Engineering', students: 41 },
   ];
 
-  const attendanceData = [
-    { id: 1, name: 'Aarav Sharma', rollNo: '20CSE001', status: 'present', confidence: 98 },
-    { id: 2, name: 'Priya Singh', rollNo: '20CSE002', status: 'present', confidence: 95 },
-    { id: 3, name: 'Rahul Kumar', rollNo: '20CSE003', status: 'absent', confidence: 0 },
-    { id: 4, name: 'Sneha Patel', rollNo: '20CSE004', status: 'present', confidence: 92 },
-    { id: 5, name: 'Arjun Gupta', rollNo: '20CSE005', status: 'present', confidence: 97 },
-  ];
+  useEffect(() => {
+    return () => {
+      if (recognitionInterval.current) {
+        clearInterval(recognitionInterval.current);
+      }
+      facialRecognitionService.stopCamera();
+    };
+  }, []);
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    // Simulate camera activation
-    setTimeout(() => {
-      console.log('Facial recognition started');
-    }, 1000);
+  const handleStartRecording = async () => {
+    try {
+      const stream = await facialRecognitionService.startCamera();
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      setIsRecording(true);
+      facialRecognitionService.clearAttendance();
+      setAttendanceData([]);
+      
+      // Start recognition simulation
+      recognitionInterval.current = setInterval(() => {
+        const records = facialRecognitionService.simulateRecognition();
+        setAttendanceData(records);
+        
+        // Update current detected
+        const latest = records[records.length - 1];
+        if (latest && latest.timestamp !== currentDetected) {
+          setCurrentDetected(latest.name);
+          toast({
+            title: "Student Detected",
+            description: `${latest.name} marked present (${latest.confidence}% confidence)`,
+          });
+        }
+      }, 2000);
+
+      toast({
+        title: "Camera Started",
+        description: "Facial recognition is now active",
+      });
+    } catch (error) {
+      toast({
+        title: "Camera Error",
+        description: "Failed to start camera. Please check permissions.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleStopRecording = () => {
+    if (recognitionInterval.current) {
+      clearInterval(recognitionInterval.current);
+    }
+    
+    facialRecognitionService.stopCamera();
     setIsRecording(false);
-    console.log('Attendance recording stopped');
+    setCurrentDetected('');
+    
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+
+    toast({
+      title: "Recording Stopped",
+      description: `Attendance session completed. ${attendanceData.length} students marked present.`,
+    });
   };
+
+  const stats = facialRecognitionService.getAttendanceStats();
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Facial Attendance System</h1>
           <p className="text-gray-600 mt-2">Automated attendance tracking using facial recognition</p>
         </div>
+        <Button
+          onClick={() => setShowRegistration(true)}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          Register Student
+        </Button>
       </div>
 
       {/* Control Panel */}
@@ -61,17 +127,26 @@ const FacialAttendance = () => {
           <CardContent>
             <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center relative overflow-hidden">
               {isRecording ? (
-                <div className="text-center text-white">
-                  <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-lg font-medium">Recording in progress...</p>
-                  <p className="text-sm text-gray-300">Scanning for faces</p>
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
                   <div className="absolute top-4 right-4">
                     <div className="flex items-center space-x-2 bg-red-600 px-3 py-1 rounded-full">
                       <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       <span className="text-white text-sm font-medium">LIVE</span>
                     </div>
                   </div>
-                </div>
+                  {currentDetected && (
+                    <div className="absolute bottom-4 left-4 bg-green-600 px-3 py-2 rounded-lg">
+                      <span className="text-white font-medium">Detected: {currentDetected}</span>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center text-gray-400">
                   <Camera className="w-16 h-16 mx-auto mb-4" />
@@ -133,28 +208,28 @@ const FacialAttendance = () => {
                   <Users className="w-4 h-4 mr-2" />
                   Total Students
                 </span>
-                <span className="font-semibold">38</span>
+                <span className="font-semibold">{stats.total}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
                   Present
                 </span>
-                <span className="font-semibold text-green-600">32</span>
+                <span className="font-semibold text-green-600">{stats.present}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 flex items-center">
                   <XCircle className="w-4 h-4 mr-2 text-red-500" />
                   Absent
                 </span>
-                <span className="font-semibold text-red-600">6</span>
+                <span className="font-semibold text-red-600">{stats.absent}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 flex items-center">
                   <Clock className="w-4 h-4 mr-2" />
                   Attendance Rate
                 </span>
-                <span className="font-semibold">84%</span>
+                <span className="font-semibold">{stats.rate}%</span>
               </div>
             </CardContent>
           </Card>
@@ -166,18 +241,18 @@ const FacialAttendance = () => {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Accuracy</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">95.2%</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Processing Time</span>
-                  <Badge variant="secondary">1.2s avg</Badge>
-                </div>
-                <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Status</span>
                   <Badge variant="secondary" className={isRecording ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
                     {isRecording ? 'Active' : 'Inactive'}
                   </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Model</span>
+                  <Badge variant="secondary">SVM + PCA</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Processing</span>
+                  <Badge variant="secondary">Real-time</Badge>
                 </div>
               </div>
             </CardContent>
@@ -204,31 +279,44 @@ const FacialAttendance = () => {
                 </tr>
               </thead>
               <tbody>
-                {attendanceData.map((student) => (
-                  <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium text-gray-900">{student.name}</td>
-                    <td className="py-3 px-4 text-gray-600">{student.rollNo}</td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant={student.status === 'present' ? 'default' : 'destructive'}
-                        className={student.status === 'present' ? 'bg-green-100 text-green-800' : ''}
-                      >
-                        {student.status === 'present' ? 'Present' : 'Absent'}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {student.confidence > 0 ? `${student.confidence}%` : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {student.status === 'present' ? '10:15 AM' : '-'}
+                {attendanceData.length > 0 ? (
+                  attendanceData.map((student) => (
+                    <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium text-gray-900">{student.name}</td>
+                      <td className="py-3 px-4 text-gray-600">{student.rollNo}</td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          variant={student.status === 'present' ? 'default' : 'destructive'}
+                          className={student.status === 'present' ? 'bg-green-100 text-green-800' : ''}
+                        >
+                          {student.status === 'present' ? 'Present' : 'Absent'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {student.confidence > 0 ? `${student.confidence}%` : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {student.timestamp}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                      {isRecording ? 'Scanning for faces...' : 'No attendance records yet. Start recording to begin.'}
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
+      <StudentRegistrationDialog
+        open={showRegistration}
+        onOpenChange={setShowRegistration}
+      />
     </div>
   );
 };
