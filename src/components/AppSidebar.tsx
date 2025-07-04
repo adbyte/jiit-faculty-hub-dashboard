@@ -33,16 +33,17 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const { collapsed } = useSidebar();
+  const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const isCollapsed = state === 'collapsed';
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-gray-100 text-gray-700';
 
   return (
-    <Sidebar className={collapsed ? 'w-16' : 'w-64'} collapsible>
+    <Sidebar className={isCollapsed ? 'w-16' : 'w-64'} collapsible="icon">
       <SidebarContent className="bg-white border-r border-gray-200">
         {/* Logo Section */}
         <div className="p-4 border-b border-gray-200">
@@ -50,7 +51,7 @@ export function AppSidebar() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            {!collapsed && (
+            {!isCollapsed && (
               <div>
                 <h2 className="font-bold text-gray-900">JIIT</h2>
                 <p className="text-xs text-gray-500">Faculty Portal</p>
@@ -61,7 +62,7 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-gray-500 font-medium">
-            {!collapsed ? 'Navigation' : ''}
+            {!isCollapsed ? 'Navigation' : ''}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -75,7 +76,7 @@ export function AppSidebar() {
                       }
                     >
                       <item.icon className="w-5 h-5 flex-shrink-0" />
-                      {!collapsed && <span className="truncate">{item.title}</span>}
+                      {!isCollapsed && <span className="truncate">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
