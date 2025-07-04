@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,22 +17,18 @@ import {
   predictGrade 
 } from '@/services/gradePredictionService';
 
-interface GradePredictionFormProps {
-  onPredictionComplete?: () => void;
-}
-
-const GradePredictionForm = ({ onPredictionComplete }: GradePredictionFormProps) => {
+const GradePredictionForm = () => {
   const [formData, setFormData] = useState<PredictionFormData>({
-    studentId: '22103310', // Default to Aditi Jain's ID
-    previousSemesterGPA: '7.8',
-    numberOfBacklogs: '0',
-    cumulativeGPA: '8.1',
-    t1Marks: '18',
-    t2Marks: '17',
-    t3Marks: '30',
-    attendancePercentage: '85',
-    taMarks: '22',
-    adherenceToDeadlines: [4]
+    studentId: '',
+    previousSemesterGPA: '',
+    numberOfBacklogs: '',
+    cumulativeGPA: '',
+    t1Marks: '',
+    t2Marks: '',
+    t3Marks: '',
+    attendancePercentage: '',
+    taMarks: '',
+    adherenceToDeadlines: [3]
   });
 
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
@@ -107,11 +104,6 @@ const GradePredictionForm = ({ onPredictionComplete }: GradePredictionFormProps)
         title: "Prediction Complete!",
         description: `Your predicted grade is ${result.predicted_grade} with ${result.confidence}% confidence.`,
       });
-
-      // Trigger callback to update parent component
-      if (onPredictionComplete) {
-        onPredictionComplete();
-      }
     } catch (error) {
       console.error('Prediction error:', error);
       toast({

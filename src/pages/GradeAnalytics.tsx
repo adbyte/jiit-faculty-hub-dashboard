@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -7,34 +6,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Users, Award, BookOpen, Target } from 'lucide-react';
 import GradePredictionForm from '@/components/GradePredictionForm';
-import { commonDatabase } from '@/services/commonDatabase';
 
 const GradeAnalytics = () => {
   const [selectedCourse, setSelectedCourse] = useState('CSE201');
-  const [gradeDistributionData, setGradeDistributionData] = useState<any[]>([]);
-  const [studentPerformance, setStudentPerformance] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    classAverage: 0,
-    passRate: 0,
-    attendanceAverage: 0
-  });
 
-  useEffect(() => {
-    updateDataForCourse(selectedCourse);
-  }, [selectedCourse]);
+  const courses = [
+    { id: 'CSE101', name: 'Computer Fundamentals' },
+    { id: 'CSE201', name: 'Data Structures' },
+    { id: 'CSE301', name: 'Database Management' },
+    { id: 'CSE401', name: 'Software Engineering' },
+  ];
 
-  const updateDataForCourse = (courseId: string) => {
-    const gradeData = commonDatabase.getGradeDistribution(courseId);
-    const students = commonDatabase.getStudentsByCourse(courseId);
-    const courseStats = commonDatabase.getClassStats(courseId);
-
-    setGradeDistributionData(gradeData);
-    setStudentPerformance(students);
-    setStats(courseStats);
-  };
-
-  const courses = commonDatabase.getCourses();
+  const gradeDistributionData = [
+    { grade: 'A+', count: 8, percentage: 21 },
+    { grade: 'A', count: 12, percentage: 32 },
+    { grade: 'B+', count: 10, percentage: 26 },
+    { grade: 'B', count: 6, percentage: 16 },
+    { grade: 'C+', count: 2, percentage: 5 },
+    { grade: 'C', count: 0, percentage: 0 },
+  ];
 
   const performanceTrendData = [
     { exam: 'Quiz 1', average: 7.2, highest: 9.5, lowest: 4.8 },
@@ -42,6 +32,14 @@ const GradeAnalytics = () => {
     { exam: 'Midterm', average: 7.5, highest: 9.2, lowest: 4.5 },
     { exam: 'Quiz 3', average: 8.1, highest: 9.7, lowest: 6.0 },
     { exam: 'Assignment', average: 8.4, highest: 9.9, lowest: 6.8 },
+  ];
+
+  const studentPerformance = [
+    { name: 'Aarav Sharma', rollNo: '20CSE001', midterm: 8.5, quiz1: 7.8, quiz2: 8.2, assignment: 9.0, total: 8.4, trend: 'up' },
+    { name: 'Priya Singh', rollNo: '20CSE002', midterm: 9.2, quiz1: 8.9, quiz2: 9.1, assignment: 9.5, total: 9.2, trend: 'up' },
+    { name: 'Rahul Kumar', rollNo: '20CSE003', midterm: 6.8, quiz1: 7.2, quiz2: 6.5, assignment: 7.8, total: 7.1, trend: 'down' },
+    { name: 'Sneha Patel', rollNo: '20CSE004', midterm: 8.8, quiz1: 8.5, quiz2: 8.9, assignment: 9.2, total: 8.9, trend: 'up' },
+    { name: 'Arjun Gupta', rollNo: '20CSE005', midterm: 7.5, quiz1: 7.8, quiz2: 7.2, assignment: 8.1, total: 7.7, trend: 'stable' },
   ];
 
   const pieChartData = gradeDistributionData.map(item => ({
@@ -52,10 +50,10 @@ const GradeAnalytics = () => {
 
   const COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#6B7280'];
 
-  const statsData = [
+  const stats = [
     {
       title: 'Class Average',
-      value: stats.classAverage.toString(),
+      value: '8.2',
       description: 'Current semester',
       icon: Target,
       color: 'bg-blue-500',
@@ -64,7 +62,7 @@ const GradeAnalytics = () => {
     },
     {
       title: 'Total Students',
-      value: stats.totalStudents.toString(),
+      value: '38',
       description: 'Enrolled students',
       icon: Users,
       color: 'bg-green-500',
@@ -73,21 +71,21 @@ const GradeAnalytics = () => {
     },
     {
       title: 'Pass Rate',
-      value: `${stats.passRate}%`,
-      description: 'Above grade D',
+      value: '95%',
+      description: 'Above grade C',
       icon: Award,
       color: 'bg-purple-500',
       trend: '+5% improvement',
       trendUp: true,
     },
     {
-      title: 'Attendance',
-      value: `${stats.attendanceAverage}%`,
-      description: 'Average attendance',
+      title: 'Assignments',
+      value: '12',
+      description: 'Completed/Total',
       icon: BookOpen,
       color: 'bg-orange-500',
-      trend: 'Class average',
-      trendUp: true,
+      trend: '4 pending review',
+      trendUp: false,
     },
   ];
 
@@ -106,7 +104,7 @@ const GradeAnalytics = () => {
           <SelectContent>
             {courses.map((course) => (
               <SelectItem key={course.id} value={course.id}>
-                {course.code} - {course.name}
+                {course.id} - {course.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -115,7 +113,7 @@ const GradeAnalytics = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat, index) => (
+        {stats.map((stat, index) => (
           <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -243,7 +241,6 @@ const GradeAnalytics = () => {
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Quiz 2</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Assignment</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Total</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Grade</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Trend</th>
                     </tr>
                   </thead>
@@ -257,7 +254,6 @@ const GradeAnalytics = () => {
                         <td className="py-3 px-4 text-gray-600">{student.quiz2}</td>
                         <td className="py-3 px-4 text-gray-600">{student.assignment}</td>
                         <td className="py-3 px-4 font-semibold text-gray-900">{student.total}</td>
-                        <td className="py-3 px-4 font-semibold text-gray-900">{student.grade}</td>
                         <td className="py-3 px-4">
                           <Badge
                             variant="secondary"
@@ -282,7 +278,7 @@ const GradeAnalytics = () => {
         </TabsContent>
 
         <TabsContent value="prediction" className="space-y-6">
-          <GradePredictionForm onPredictionComplete={() => updateDataForCourse(selectedCourse)} />
+          <GradePredictionForm />
         </TabsContent>
       </Tabs>
     </div>

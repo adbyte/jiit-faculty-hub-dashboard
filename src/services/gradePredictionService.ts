@@ -1,3 +1,4 @@
+
 // Grade prediction service with anomaly detection and trend analysis
 export interface PredictionFormData {
   studentId: string;
@@ -101,49 +102,50 @@ export const analyzeLearningTrend = (formData: PredictionFormData): LearningTren
   if (gpaDifference > 0.5) {
     return {
       type: 'rising',
-      description: `Strong upward trend: GPA improved by ${gpaDifference.toFixed(2)} points from previous semester`,
+      description: `Strong upward trend: GPA improved by ${gpaDifference.toFixed(2)} points`,
       color: 'text-green-600 bg-green-50',
       icon: '📈'
     };
   } else if (gpaDifference > 0.1) {
     return {
       type: 'rising',
-      description: `Gradual improvement: GPA increased by ${gpaDifference.toFixed(2)} points from previous semester`,
+      description: `Gradual improvement: GPA increased by ${gpaDifference.toFixed(2)} points`,
       color: 'text-green-600 bg-green-50',
       icon: '📊'
     };
   } else if (gpaDifference < -0.5) {
     return {
       type: 'declining',
-      description: `Concerning decline: GPA dropped by ${Math.abs(gpaDifference).toFixed(2)} points from previous semester`,
+      description: `Concerning decline: GPA dropped by ${Math.abs(gpaDifference).toFixed(2)} points`,
       color: 'text-red-600 bg-red-50',
       icon: '📉'
     };
   } else if (gpaDifference < -0.1) {
     return {
       type: 'declining',
-      description: `Slight decline: GPA decreased by ${Math.abs(gpaDifference).toFixed(2)} points from previous semester`,
+      description: `Slight decline: GPA decreased by ${Math.abs(gpaDifference).toFixed(2)} points`,
       color: 'text-orange-600 bg-orange-50',
       icon: '📊'
     };
   } else {
     return {
       type: 'stable',
-      description: `Consistent performance: GPA maintained around ${cumGPA.toFixed(2)} with minimal change from previous semester`,
+      description: `Consistent performance: GPA maintained around ${cumGPA.toFixed(2)}`,
       color: 'text-blue-600 bg-blue-50',
       icon: '📊'
     };
   }
 };
 
-// Mock prediction service with database integration
+// Mock prediction service (replace with actual API call to Python backend)
 export const predictGrade = async (formData: PredictionFormData): Promise<PredictionResult> => {
+  // This would be replaced with actual API call to Python Flask/FastAPI backend
   console.log('Predicting grade with XGBoost model for data:', formData);
   
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // Mock prediction based on scoring logic
+  // Mock prediction based on simple scoring logic for demonstration
   const t1 = parseFloat(formData.t1Marks) || 0;
   const t2 = parseFloat(formData.t2Marks) || 0;
   const t3 = parseFloat(formData.t3Marks) || 0;
@@ -151,98 +153,27 @@ export const predictGrade = async (formData: PredictionFormData): Promise<Predic
   const attendance = parseFloat(formData.attendancePercentage) || 0;
   const cumGPA = parseFloat(formData.cumulativeGPA) || 0;
   const backlogs = parseInt(formData.numberOfBacklogs) || 0;
-  const adherence = Array.isArray(formData.adherenceToDeadlines)
-    ? Number(formData.adherenceToDeadlines[0])
-    : Number(formData.adherenceToDeadlines) || 3;
   
   const totalScore = t1 + t2 + t3 + ta;
   const weightedScore = (totalScore * 0.6) + (attendance * 0.2) + (cumGPA * 8 * 0.2);
   
-  // Adjust for backlogs and adherence
-  const adjustedScore = weightedScore - (backlogs * 5) + (adherence * 2);
+  // Adjust for backlogs
+  const adjustedScore = weightedScore - (backlogs * 5);
   
   let predictedGrade = 'F';
   let confidence = 85;
   
-  if (adjustedScore >= 90) predictedGrade = 'A+';
-  else if (adjustedScore >= 85) predictedGrade = 'A';
-  else if (adjustedScore >= 80) predictedGrade = 'B+';
-  else if (adjustedScore >= 75) predictedGrade = 'B';
-  else if (adjustedScore >= 70) predictedGrade = 'C+';
-  else if (adjustedScore >= 65) predictedGrade = 'C';
-  else if (adjustedScore >= 60) predictedGrade = 'D+';
-  else if (adjustedScore >= 55) predictedGrade = 'D';
-
-  // Register/update student in common database if prediction is made
-  const existingStudent = commonDatabase.getStudentByRollNo(formData.studentId);
-  
-  if (existingStudent) {
-    // Update existing student with new prediction
-    commonDatabase.updateStudent(existingStudent.id, {
-      grade: predictedGrade,
-      gpa: getGpaFromGrade(predictedGrade),
-      previousSemesterGPA: parseFloat(formData.previousSemesterGPA),
-      cumulativeGPA: parseFloat(formData.cumulativeGPA),
-      t1Marks: t1,
-      t2Marks: t2,
-      t3Marks: t3,
-      taMarks: ta,
-      attendancePercentage: attendance,
-      numberOfBacklogs: backlogs,
-      adherenceToDeadlines: adherence,
-      midterm: t3 / 3.5, // Convert T3 to midterm scale
-      total: getGpaFromGrade(predictedGrade)
-    });
-  } else {
-    // Add new student to database
-    const newStudent: Student = {
-      id: Date.now().toString(),
-      name: getNameFromStudentId(formData.studentId),
-      rollNo: formData.studentId,
-      course: 'CSE201',
-      semester: 'Fall 2024',
-      midterm: t3 / 3.5,
-      quiz1: t1 / 2,
-      quiz2: t2 / 2,
-      assignment: ta / 2.5,
-      total: getGpaFromGrade(predictedGrade),
-      trend: parseFloat(formData.cumulativeGPA) > parseFloat(formData.previousSemesterGPA) ? 'up' : 
-             parseFloat(formData.cumulativeGPA) < parseFloat(formData.previousSemesterGPA) ? 'down' : 'stable',
-      grade: predictedGrade,
-      gpa: getGpaFromGrade(predictedGrade),
-      attendance: attendance,
-      previousSemesterGPA: parseFloat(formData.previousSemesterGPA),
-      cumulativeGPA: parseFloat(formData.cumulativeGPA),
-      t1Marks: t1,
-      t2Marks: t2,
-      t3Marks: t3,
-      taMarks: ta,
-      numberOfBacklogs: backlogs,
-      adherenceToDeadlines: adherence,
-      attendancePercentage: attendance
-    };
-    
-    commonDatabase.addStudent(newStudent);
-  }
+  if (adjustedScore >= 85) predictedGrade = 'A+';
+  else if (adjustedScore >= 80) predictedGrade = 'A';
+  else if (adjustedScore >= 75) predictedGrade = 'B+';
+  else if (adjustedScore >= 70) predictedGrade = 'B';
+  else if (adjustedScore >= 65) predictedGrade = 'C+';
+  else if (adjustedScore >= 60) predictedGrade = 'C';
+  else if (adjustedScore >= 55) predictedGrade = 'D+';
+  else if (adjustedScore >= 50) predictedGrade = 'D';
   
   return {
     predicted_grade: predictedGrade,
     confidence: confidence
   };
 };
-
-function getGpaFromGrade(grade: string): number {
-  const gradeToGpa = {
-    'A+': 10, 'A': 9, 'B+': 8, 'B': 7,
-    'C+': 6, 'C': 5, 'D+': 4, 'D': 3, 'F': 0
-  };
-  return gradeToGpa[grade as keyof typeof gradeToGpa] || 0;
-}
-
-function getNameFromStudentId(studentId: string): string {
-  // Default to "Aditi Jain" if it's the known student ID, otherwise generate a name
-  if (studentId === '22103310') {
-    return 'Aditi Jain';
-  }
-  return `Student ${studentId}`;
-}
