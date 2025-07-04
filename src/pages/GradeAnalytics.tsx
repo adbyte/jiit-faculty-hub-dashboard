@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Users, Award, BookOpen, Target } from 'lucide-react';
+import GradePredictionForm from '@/components/GradePredictionForm';
 
 const GradeAnalytics = () => {
   const [selectedCourse, setSelectedCourse] = useState('CSE201');
@@ -95,7 +95,7 @@ const GradeAnalytics = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Grade Analytics</h1>
-          <p className="text-gray-600 mt-2">Comprehensive analysis of student performance and grades</p>
+          <p className="text-gray-600 mt-2">Comprehensive analysis of student performance and grade prediction</p>
         </div>
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
           <SelectTrigger className="w-64">
@@ -142,10 +142,11 @@ const GradeAnalytics = () => {
 
       {/* Charts Section */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="performance">Performance Trends</TabsTrigger>
           <TabsTrigger value="students">Student Details</TabsTrigger>
+          <TabsTrigger value="prediction">Grade Prediction</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -274,6 +275,10 @@ const GradeAnalytics = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="prediction" className="space-y-6">
+          <GradePredictionForm />
         </TabsContent>
       </Tabs>
     </div>
